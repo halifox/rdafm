@@ -4,53 +4,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.github.rdafm.ui.theme.RdafmTheme
-import com.service.fm.FmReceiver
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import com.github.rdafm.ui.FmRadioScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // echo 1 > /sys/devices/virtual/pwrcfg_class/dl_fmaudio_en/state
+        // echo 1 > /sys/devices/virtual/pwrcfg_class/dl_amp_mute/state
         setContent {
-            //echo 1 > /sys/devices/virtual/pwrcfg_class/dl_fmaudio_en
-            val fmReceiver = FmReceiver()
-            fmReceiver.turnOnRadio()
-            fmReceiver.tuneRadio(9750)
-//            fmReceiver.muteAudio(false)
-            fmReceiver.setFMVolume(1)
-//            fmReceiver.setAudioPath(FmReceiver.AUDIO_PATH_SPEAKER)
-
-            RdafmTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            MaterialTheme(darkColorScheme()) {
+                FmRadioScreen()
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    RdafmTheme {
-        Greeting("Android")
-    }
-}

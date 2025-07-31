@@ -55,4 +55,14 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(project(":fm"))
+
+    // Material 3
+    implementation("androidx.compose.material3:material3:1.5.0-alpha01")
+//    implementation("androidx.compose.material3:material3-window-size-class:1.3.2") // 可选，用于大屏幕适配
+
+    // Accompanist System UI Controller (控制状态栏颜色)
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.36.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
+
 }
