@@ -1,7 +1,7 @@
 package com.github.rdafm.ui
 
 import android.content.Context
-import android.util.Log
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
@@ -13,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,9 +20,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -67,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -82,6 +82,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun FmRadioScreen() {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
+
     val sp = remember { context.getSharedPreferences("fm", Context.MODE_PRIVATE) }
     val fmReceiver = remember { FmReceiver() }
     var volume by remember { mutableStateOf(sp.getFloat("volume", 0f)) }
@@ -236,11 +240,12 @@ fun FmRadioScreen() {
                 }
             }
             Text(
-                text = "FM %.1fMHz".format(freq / 100F),
-                fontSize = 72.sp,
+                text = if (isPortrait) "FM\n%.1fMHz".format(freq / 100F) else "FM %.1fMHz".format(freq / 100F),
                 lineHeight = 72.sp,
+                autoSize = TextAutoSize.StepBased(maxFontSize = 72.sp),
                 textAlign = TextAlign.Start,
-                modifier = Modifier.width(IntrinsicSize.Min),
+                maxLines = if (isPortrait) 2 else 1,
+                modifier = Modifier.padding(16.dp, 0.dp),
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             )
             Slider(
