@@ -9,9 +9,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -64,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
@@ -72,6 +73,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import coil3.compose.AsyncImage
 import com.service.fm.FmReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.sample
@@ -173,159 +175,172 @@ fun FmRadioScreen() {
             }
         },
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
+        Box(
+            Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceAround // 确保内容有足够的空间
         ) {
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FilledTonalIconButton(
-                    { volumeSliderState = !volumeSliderState },
-                    enabled = power && !loading,
-                ) {
-                    Icon(Icons.Rounded.VolumeUp, null)
-                }
-                AnimatedContent(volumeSliderState, Modifier.weight(1f, fill = false)) { it ->
-                    if (it) {
-                        Slider(
-                            volume,
-                            { volume = it },
-                            Modifier
-                                .weight(1f)
-                                .height(28.dp),
-                            enabled = power && !loading
-                        )
-                    }
-                }
-                FilledTonalIconToggleButton(
-                    freq in freqStars,
-                    {
-                        if (freq in freqStars) {
-                            freqStars.remove(freq)
-                        } else {
-                            freqStars.add(freq)
-                        }
-                        val destination = mutableSetOf<String>()
-                        freqStars.mapIndexedTo(destination) { index, value -> value.toString() }
-                        sp.edit { putStringSet("freqStars", destination) }
-                    },
-                    enabled = power && !loading,
-                ) {
-                    if (freq in freqStars) {
-                        Icon(Icons.Rounded.Star, null)
-                    } else {
-                        Icon(Icons.Rounded.StarBorder, null)
-                    }
-                }
-                Spacer(Modifier.size(0.dp))
-                FilledTonalIconButton(
-                    {
-                        scope.launch {
-                            scaffoldState.bottomSheetState.expand()
-                        }
-                    },
-                    enabled = power && !loading,
-                ) {
-                    Icon(Icons.Rounded.List, null)
-                }
+            if (power) {
+                AsyncImage(
+                    com.github.rdafm.R.drawable.visualizer,
+                    null,
+                    Modifier
+                        .fillMaxWidth(0.8f)
+                        .alpha(0.4f)
+                        .align(Alignment.Center)
+                )
             }
-            Text(
-                text = if (isPortrait) "FM\n%.1fMHz".format(freq / 100F) else "FM %.1fMHz".format(freq / 100F),
-                lineHeight = 72.sp,
-                autoSize = TextAutoSize.StepBased(maxFontSize = 72.sp),
-                textAlign = TextAlign.Start,
-                maxLines = if (isPortrait) 2 else 1,
-                modifier = Modifier.padding(16.dp, 0.dp),
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            )
-            Slider(
-                value = freq.toFloat(),
-                onValueChange = { newValue -> freq = newValue.toInt() },
-                valueRange = 8750f..10800f,
-                steps = 204, // 108.0 - 87.5 = 20.5; 20.5 / 0.1 = 205 steps, -1 for actual steps
-                modifier = Modifier.fillMaxWidth(),
-                enabled = power && !loading
-            )
-            Row(
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceAround
             ) {
-                FilledTonalIconButton(
-                    { launch { freq = fmReceiver.seekStation(FmReceiver.SCAN_MODE_DOWN) } },
-                    enabled = power && !loading,
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Rounded.FastRewind, null)
-                }
-                FilledTonalIconButton(
-                    { freq -= 10 },
-                    enabled = power && !loading,
-                ) {
-                    Icon(Icons.Rounded.SkipPrevious, null)
-                }
-                FilledIconButton(
-                    {
-                        launch {
-                            val state = if (power) fmReceiver.turnOffRadio() else fmReceiver.turnOnRadio()
-                            if (state == 0) {
-                                power = !power
-                                if (power) {
-                                    fmReceiver.tuneRadio(freq)
-                                    fmReceiver.setFMVolume((volume * 10).toInt())
-                                }
-                            } else {
-                                scaffoldState.snackbarHostState.showSnackbar("FM收音机打开失败 错误代码:${state}")
-                            }
-                        }
-                    },
-                    Modifier.size(36.dp + 16.dp),
-                ) {
-                    if (loading) {
-                        val infiniteTransition = rememberInfiniteTransition()
-                        val rotation by infiniteTransition.animateFloat(
-                            initialValue = 0f,
-                            targetValue = 360f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(durationMillis = 1000, easing = LinearEasing)
+                    FilledTonalIconButton(
+                        { volumeSliderState = !volumeSliderState },
+                        enabled = power && !loading,
+                    ) {
+                        Icon(Icons.Rounded.VolumeUp, null)
+                    }
+                    AnimatedContent(volumeSliderState, Modifier.weight(1f, fill = false)) { it ->
+                        if (it) {
+                            Slider(
+                                volume,
+                                { volume = it },
+                                Modifier
+                                    .weight(1f)
+                                    .height(28.dp),
+                                enabled = power && !loading
                             )
-                        )
-                        Icon(
-                            Icons.Rounded.Autorenew, null,
-                            Modifier
-                                .size(36.dp)
-                                .graphicsLayer { rotationZ = rotation })
-                    } else if (power) {
-                        Icon(Icons.Rounded.Pause, null, Modifier.size(36.dp))
-                    } else {
-                        Icon(Icons.Rounded.PlayArrow, null, Modifier.size(36.dp))
+                        }
+                    }
+                    FilledTonalIconToggleButton(
+                        freq in freqStars,
+                        {
+                            if (freq in freqStars) {
+                                freqStars.remove(freq)
+                            } else {
+                                freqStars.add(freq)
+                            }
+                            val destination = mutableSetOf<String>()
+                            freqStars.mapIndexedTo(destination) { index, value -> value.toString() }
+                            sp.edit { putStringSet("freqStars", destination) }
+                        },
+                        enabled = power && !loading,
+                    ) {
+                        if (freq in freqStars) {
+                            Icon(Icons.Rounded.Star, null)
+                        } else {
+                            Icon(Icons.Rounded.StarBorder, null)
+                        }
+                    }
+                    Spacer(Modifier.size(0.dp))
+                    FilledTonalIconButton(
+                        {
+                            scope.launch {
+                                scaffoldState.bottomSheetState.expand()
+                            }
+                        },
+                        enabled = power && !loading,
+                    ) {
+                        Icon(Icons.Rounded.List, null)
                     }
                 }
-                FilledTonalIconButton(
-                    { freq += 10 },
-                    enabled = power && !loading,
+                Text(
+                    text = if (isPortrait) "FM\n%.1fMHz".format(freq / 100F) else "FM %.1fMHz".format(freq / 100F),
+                    lineHeight = 72.sp,
+                    autoSize = TextAutoSize.StepBased(maxFontSize = 72.sp),
+                    textAlign = TextAlign.Start,
+                    maxLines = if (isPortrait) 2 else 1,
+                    modifier = Modifier.padding(16.dp, 0.dp),
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                )
+                Slider(
+                    value = freq.toFloat(),
+                    onValueChange = { newValue -> freq = newValue.toInt() },
+                    valueRange = 8750f..10800f,
+                    steps = 204, // 108.0 - 87.5 = 20.5; 20.5 / 0.1 = 205 steps, -1 for actual steps
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = power && !loading
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Rounded.SkipNext, null)
-                }
-                FilledTonalIconButton(
-                    { launch { freq = fmReceiver.seekStation(FmReceiver.SCAN_MODE_UP) } },
-                    enabled = power && !loading,
-                ) {
-                    Icon(Icons.Rounded.FastForward, null)
+                    FilledTonalIconButton(
+                        { launch { freq = fmReceiver.seekStation(FmReceiver.SCAN_MODE_DOWN) } },
+                        enabled = power && !loading,
+                    ) {
+                        Icon(Icons.Rounded.FastRewind, null)
+                    }
+                    FilledTonalIconButton(
+                        { freq -= 10 },
+                        enabled = power && !loading,
+                    ) {
+                        Icon(Icons.Rounded.SkipPrevious, null)
+                    }
+                    FilledIconButton(
+                        {
+                            launch {
+                                val state = if (power) fmReceiver.turnOffRadio() else fmReceiver.turnOnRadio()
+                                if (state == 0) {
+                                    power = !power
+                                    if (power) {
+                                        fmReceiver.tuneRadio(freq)
+                                        fmReceiver.setFMVolume((volume * 10).toInt())
+                                    }
+                                } else {
+                                    scaffoldState.snackbarHostState.showSnackbar("FM收音机打开失败 错误代码:${state}")
+                                }
+                            }
+                        },
+                        Modifier.size(36.dp + 16.dp),
+                    ) {
+                        if (loading) {
+                            val infiniteTransition = rememberInfiniteTransition()
+                            val rotation by infiniteTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 360f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(durationMillis = 1000, easing = LinearEasing)
+                                )
+                            )
+                            Icon(
+                                Icons.Rounded.Autorenew, null,
+                                Modifier
+                                    .size(36.dp)
+                                    .graphicsLayer { rotationZ = rotation })
+                        } else if (power) {
+                            Icon(Icons.Rounded.Pause, null, Modifier.size(36.dp))
+                        } else {
+                            Icon(Icons.Rounded.PlayArrow, null, Modifier.size(36.dp))
+                        }
+                    }
+                    FilledTonalIconButton(
+                        { freq += 10 },
+                        enabled = power && !loading,
+                    ) {
+                        Icon(Icons.Rounded.SkipNext, null)
+                    }
+                    FilledTonalIconButton(
+                        { launch { freq = fmReceiver.seekStation(FmReceiver.SCAN_MODE_UP) } },
+                        enabled = power && !loading,
+                    ) {
+                        Icon(Icons.Rounded.FastForward, null)
+                    }
                 }
             }
-
         }
     }
 }
